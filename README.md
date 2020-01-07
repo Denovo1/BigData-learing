@@ -275,13 +275,13 @@ Spark 生态包含了：Spark Core、Spark Streaming、Spark SQL、Structured St
 
 - Spark的集群搭建和集群架构（Spark 集群中的角色）
 
-   https://blog.csdn.net/weixin_42685589/article/details/81030438 
+   https://blog.csdn.net/weixin_42685589/article/details/81030438
 
-    ![](https://github.com/Denovo1/BigData-learing/tree/master/images/1122015-20170324171609033-312322432.png) 
+   ![img](https://images2015.cnblogs.com/blog/1122015/201703/1122015-20170324171609033-312322432.png)
    
-    ![](https://github.com/Denovo1/BigData-learing/tree/master/images/1122015-20170327114818967-165213638.png) 
-
-  
+   ![img](https://images2015.cnblogs.com/blog/1122015/201703/1122015-20170327114818967-165213638.png)  
+   
+   
 
 - Spark Cluster 和 Client 模式的区别
 
