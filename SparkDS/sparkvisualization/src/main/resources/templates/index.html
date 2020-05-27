@@ -1,0 +1,285 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>任务管理</title>
+    <link href="../static/favicon.ico" type="image/x-icon" rel="shortcut icon">
+    <link rel="stylesheet" th:href="@{../static/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{../static/css/cronGen.css}">
+    <style type="text/css">
+        .btnRun, .btnEdit {
+            margin-right: 8px;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 50px;
+            margin-top: 15px;
+        }
+
+        .btnCreate {
+            text-align: right;
+            margin: 5px 15px;
+        }
+
+        .head {
+            border: solid;
+            border-color: #8080805c;
+            border-width: 1px;
+        }
+
+        .btnShow {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #fff;
+            background-color: #286090;
+            border-color: #122b40;
+            margin-left: 4px;
+            float: left;
+        }
+
+        .btnPageShow {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #fff;
+            background-color: #286090;
+            border-color: #122b40;
+            margin-left: 6px;
+            margin-top: 4px;
+            float: left;
+        }
+
+        .btnPage {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #333;
+            background-color: #fff;
+            border-color: #ccc;
+            margin-left: 2px;
+            margin-top: 4px;
+            float: left;
+        }
+
+        .btnArea {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #333;
+            background-color: #fff;
+            border-color: #ccc;
+            margin-left: 2px;
+            margin-top: 4px;
+            float: left;
+        }
+
+        .btnAreaShow {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #fff;
+            background-color: #286090;
+            border-color: #122b40;
+            margin-left: 6px;
+            margin-top: 4px;
+            float: left;
+        }
+
+        .btnUI {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #fff;
+            background-color: #ffd100;
+            border-color: #122b40;
+            margin-left: 6px;
+            float: right;
+        }
+
+        body {
+            background-image: url("/static/img/bak0.jpg");
+            background-attachment: fixed;
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+    </style>
+    <script type="application/javascript" th:src="@{../static/js/jquery.min.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/bootstrap.min.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/bootstrap-select.min.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/cronGen.min.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/index.js}"></script>
+</head>
+<body>
+<script>
+    function spark() {
+        // window.location.href = 'http://192.168.109.135:8080/';
+        window.open("http://192.168.109.135:8080/");
+    }
+    function ad() {
+        // window.location.href = 'http://192.168.109.135:8080/';
+        window.location.href="http://master:8077/index/alladindex";
+    }
+
+    function yarn() {
+        // window.location.href = 'http://192.168.109.136:8088/cluster';
+        window.open("http://192.168.109.136:8088/cluster");
+    }
+</script>
+
+<div class="container-fluid" style="padding-top: 15px;">
+
+    <div class="head">
+        <div class="title">任务列表</div>
+        <hr class="line">
+        <div class="btnCreate">
+            <button type="button" class="btn btn-primary" id="createBtn" data-toggle="modal">create</button>
+            <button onclick="ad()" class="btnUI">广告实时统计展示</button>
+            <button onclick="spark()" class="btnUI">Spark UI</button>
+            <button onclick="yarn()" class="btnUI">Yarn UI</button>
+        </div>
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+        <tr class="active">
+            <th>taskid</th>
+            <th>taskName</th>
+            <th>createTime</th>
+            <th>startTime</th>
+            <th>finishTime</th>
+            <th>taskType</th>
+            <th>taskStatus</th>
+            <th>taskParam</th>
+            <th style="text-align: center;">operation</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item,itemStat:${tasks}">
+            <td th:id="id_+${item.taskid}" th:text="${item.taskid}"></td>
+            <td th:id="name_+${item.taskid}" th:text="${item.taskName}"></td>
+            <td th:id="ctime_+${item.taskid}" th:text="${item.createTime}"></td>
+            <td th:id="stime_+${item.taskid}" th:text="${item.startTime}"></td>
+            <td th:id="ftime_+${item.taskid}" th:text="${item.finishTime}"></td>
+            <td th:id="type_+${item.taskid}" th:text="${item.taskType}"></td>
+            <td th:id="status_+${item.taskid}" th:text="${item.taskStatus}"></td>
+            <td th:id="param_+${item.taskid}" th:text="${item.taskParam}"></td>
+            <td style="text-align: center;">
+                <div class="btn-group text-center" role="group" th:data-id="${item.taskid}">
+                    <button type="button" class="btn btn-default btnEdit">edit</button>
+                    <button type="button" class="btn btn-warning btnDelete">delete</button>
+                    <br><br>
+                    <button type="button" class="btn btn-default btnRun">runSession</button>
+                    <button type="button" class="btnShow">session</button>
+                    <br><br>
+                    <button type="button" class="btnPage">runPage</button>
+                    <button type="button" class="btnPageShow">page</button>
+                    <br><br>
+                    <button type="button" class="btnArea">runArea</button>
+                    <button type="button" class="btnAreaShow">area</button>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="quartzModal" tabindex="-1" role="dialog" aria-labelledby="quartzModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title" id="quartzModalLabel">create</h4>
+            </div>
+            <div class="modal-body">
+                <form id="mainForm" method="post" enctype="multipart/form-data">
+                    <div>
+                        <div class="input-group">
+                            <span class="input-group-addon">taskid</span>
+                            <input type="text" alias="no-edit" name="taskid" class="form-control" id="edit_taskid">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon">taskName</span>
+                            <input type="text" alias="no-edit" name="taskName" class="form-control" id="edit_taskName">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon">taskType</span>
+                            <select id="edit_taskType" name="taskType" class="form-control" data-size="10">
+                                <option value="TEST" selected="selected">TEST</option>
+                                <option value="PRODUCTION">PRODUCTION</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-addon">taskParam</span>
+                            <input type="text" alias="no-edit" name="taskParam" class="form-control"
+                                   id="edit_taskParam">
+                        </div>
+                        <center><h5>taskParam格式为{"":[""],"":[""]}</h5></center>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="cancel" class="btn btn-default" data-dismiss="modal">cancel</button>
+                        <button type="button" class="btn btn-primary" id="save">save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

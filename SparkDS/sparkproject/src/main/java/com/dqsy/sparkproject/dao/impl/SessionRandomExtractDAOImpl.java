@@ -2,20 +2,22 @@ package com.dqsy.sparkproject.dao.impl;
 
 import com.dqsy.sparkproject.dao.ISessionRandomExtractDAO;
 import com.dqsy.sparkproject.domain.SessionRandomExtract;
-import com.dqsy.sparkproject.jdbc.JDBCHelper;
+import com.dqsy.sparkproject.util.JDBCUtil;
 
 /**
  * 随机抽取session的DAO实现
- * @author liusinan
  *
+ * @author liusinan
  */
 public class SessionRandomExtractDAOImpl implements ISessionRandomExtractDAO {
     /**
      * 插入session随机抽取
+     *
      * @param sessionRandomExtract
      */
+    @Override
     public void insert(SessionRandomExtract sessionRandomExtract) {
-        String sql = "insert into session_random_extract values(?,?,?,?,?)";
+        String sql = "insert into random_session_behavior_line values(?,?,?,?,?)";
 
         Object[] params = new Object[]{sessionRandomExtract.getTaskid(),
                 sessionRandomExtract.getSessionid(),
@@ -23,7 +25,7 @@ public class SessionRandomExtractDAOImpl implements ISessionRandomExtractDAO {
                 sessionRandomExtract.getSearchKeywords(),
                 sessionRandomExtract.getClickCategoryIds()};
 
-        JDBCHelper jdbcHelper = JDBCHelper.getInstance();
-        jdbcHelper.executeUpdate(sql, params);
+        JDBCUtil jdbcUtil = JDBCUtil.getInstance();
+        jdbcUtil.executeUpdate(sql, params);
     }
 }

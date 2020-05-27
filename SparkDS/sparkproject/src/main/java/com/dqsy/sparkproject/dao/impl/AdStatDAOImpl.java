@@ -2,11 +2,12 @@ package com.dqsy.sparkproject.dao.impl;
 
 import com.dqsy.sparkproject.dao.IAdStatDAO;
 import com.dqsy.sparkproject.domain.AdStat;
-import com.dqsy.sparkproject.jdbc.JDBCHelper;
-import com.dqsy.sparkproject.model.AdStatQueryResult;
+import com.dqsy.sparkproject.util.DBCPUtil;
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
+import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -16,85 +17,49 @@ import java.util.List;
  */
 public class AdStatDAOImpl implements IAdStatDAO {
 
+    private QueryRunner qr = new QueryRunner(DBCPUtil.getDataSource());
+
     @Override
     public void updateBatch(List<AdStat> adStats) {
-        JDBCHelper jdbcHelper = JDBCHelper.getInstance();
+        //步骤：
+        //①准备两个容器分别存储要更新的AdUserClickCount实例和要插入的AdUserClickCount实例
+        List<AdStat> updateContainer = new LinkedList<>();
+        List<AdStat> insertContainer = new LinkedList<>();
+        try {
+            //②填充容器（一次与db中的记录进行比对，若存在，就添加到更新容器中；否则，添加到保存的容器中）
+            String sql = "select click_count from advertisement_position_clickcount where `date`=? and province=? and city=? and ad_id=?";
+            for (AdStat bean : adStats) {
 
-        // 区分开来哪些是要插入的，哪些是要更新的
-        List<AdStat> insertAdStats = new ArrayList<AdStat>();
-        List<AdStat> updateAdStats = new ArrayList<AdStat>();
-
-        String selectSQL = "SELECT count(*) "
-                + "FROM ad_stat "
-                + "WHERE date=? "
-                + "AND province=? "
-                + "AND city=? "
-                + "AND ad_id=?";
-
-        for (AdStat adStat : adStats) {
-            final AdStatQueryResult queryResult = new AdStatQueryResult();
-
-            Object[] params = new Object[]{adStat.getDate(),
-                    adStat.getProvince(),
-                    adStat.getCity(),
-                    adStat.getAdid()};
-
-            jdbcHelper.executeQuery(selectSQL, params, new JDBCHelper.QueryCallback() {
-
-                @Override
-                public void process(ResultSet rs) throws Exception {
-                    if (rs.next()) {
-                        int count = rs.getInt(1);
-                        queryResult.setCount(count);
-                    }
+                Object click_count = qr.query(sql, new ScalarHandler<>("click_count"), bean.getDate(), bean.getProvince(), bean.getCity(), bean.getAdid());
+                if (click_count == null) {
+                    insertContainer.add(bean);
+                } else {
+                    updateContainer.add(bean);
                 }
-            });
-
-            int count = queryResult.getCount();
-
-            if (count > 0) {
-                updateAdStats.add(adStat);
-            } else {
-                insertAdStats.add(adStat);
             }
+
+            //③对更新的容器进行批量update操作
+            // click_count=click_count+?  <~ ? 证明?传过来的是本batch新增的click_count,不包括过往的历史  (调用处调用：reduceByKey)
+            // click_count=?  <~ ? 证明?传过来的是总的click_count （调用出：使用了updateStateByKey）
+            sql = "update advertisement_position_clickcount set click_count=? where `date`=? and province=? and city=? and ad_id=?";
+            Object[][] params = new Object[updateContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdStat bean = updateContainer.get(i);
+                params[i] = new Object[]{bean.getClickCount(), bean.getDate(), bean.getProvince(), bean.getCity(), bean.getAdid()};
+            }
+            qr.batch(sql, params);
+            //④对保存的容器进行批量insert操作
+            sql = "insert into advertisement_position_clickcount values(?,?,?,?,?)";
+            params = new Object[insertContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdStat bean = insertContainer.get(i);
+                params[i] = new Object[]{bean.getDate(), bean.getProvince(), bean.getCity(), bean.getAdid(), bean.getClickCount()};
+            }
+            qr.batch(sql, params);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-
-        // 对于需要插入的数据，执行批量插入操作
-        String insertSQL = "INSERT INTO ad_stat VALUES(?,?,?,?,?)";
-
-        List<Object[]> insertParamsList = new ArrayList<>();
-
-        for (AdStat adStat : insertAdStats) {
-            Object[] params = new Object[]{adStat.getDate(),
-                    adStat.getProvince(),
-                    adStat.getCity(),
-                    adStat.getAdid(),
-                    adStat.getClickCount()};
-            insertParamsList.add(params);
-        }
-
-        jdbcHelper.executeBatch(insertSQL, insertParamsList);
-
-        // 对于需要更新的数据，执行批量更新操作
-        String updateSQL = "UPDATE ad_stat SET click_count=? "
-                + "FROM ad_stat "
-                + "WHERE date=? "
-                + "AND province=? "
-                + "AND city=? "
-                + "AND ad_id=?";
-
-        List<Object[]> updateParamsList = new ArrayList<>();
-
-        for (AdStat adStat : updateAdStats) {
-            Object[] params = new Object[]{adStat.getClickCount(),
-                    adStat.getDate(),
-                    adStat.getProvince(),
-                    adStat.getCity(),
-                    adStat.getAdid()};
-            updateParamsList.add(params);
-        }
-
-        jdbcHelper.executeBatch(updateSQL, updateParamsList);
     }
 
 }

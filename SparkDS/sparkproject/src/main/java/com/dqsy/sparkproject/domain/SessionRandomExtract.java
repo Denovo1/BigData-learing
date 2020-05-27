@@ -1,10 +1,9 @@
 package com.dqsy.sparkproject.domain;
 
-
 /**
  * 随机抽取的session
- * @author liusinan
  *
+ * @author liusinan
  */
 public class SessionRandomExtract {
 
@@ -17,30 +16,39 @@ public class SessionRandomExtract {
     public long getTaskid() {
         return taskid;
     }
+
     public void setTaskid(long taskid) {
         this.taskid = taskid;
     }
+
     public String getSessionid() {
         return sessionid;
     }
+
     public void setSessionid(String sessionid) {
         this.sessionid = sessionid;
     }
+
     public String getStartTime() {
         return startTime;
     }
+
     public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
+
     public String getSearchKeywords() {
         return searchKeywords;
     }
+
     public void setSearchKeywords(String searchKeywords) {
         this.searchKeywords = searchKeywords;
     }
+
     public String getClickCategoryIds() {
         return clickCategoryIds;
     }
+
     public void setClickCategoryIds(String clickCategoryIds) {
         this.clickCategoryIds = clickCategoryIds;
     }

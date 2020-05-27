@@ -1,0 +1,362 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+    <title>Top3</title>
+    <link href="../static/favicon.ico" type="image/x-icon" rel="shortcut icon">
+    <style>
+
+        .echarts-map {
+            width: 1700px;
+            height: 850px;
+            width: 39%;
+            border: 0px solid;
+            margin-top: 50px;
+            margin-left: 250px;
+        }
+
+        .top {
+            width: 100%;
+            height: 50px;
+            line-height: 80px;
+            text-align: center;
+            /*border:1px solid #F00;*/
+            font-weight: bold;
+            font-size: 20px;
+            color: #9d9d9d;
+        }
+
+        body {
+            background-image: url("/static/img/bak1.jpg");
+            background-attachment: fixed;
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+
+        .container-fluid {
+            background-image: url("/static/img/bak0.jpg");
+            background-attachment: fixed;
+            background-size: cover;
+            background-repeat: no-repeat;
+            width: 1700px;
+            height: 820px;
+            float: left;
+        }
+    </style>
+</head>
+<body>
+<div class="top">大区前三热门商品</div>
+<!--<div class="echarts-map">-->
+
+<div class="echarts-map" id="echartsMapBox" style="width: 1600px;height: 850px;">
+    <input type="hidden" id="taskid" th:value='${taskid}'>
+    <script type="application/javascript" th:src="@{../static/js/jquery_3.4.1_jquery.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/echarts_4.6.0_echarts.js}"></script>
+    <!--<script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>
+    <script type="text/javascript" src="https://cdn.bootcss.com/echarts/4.6.0/echarts.min.js"></script>-->
+    <script type="text/javascript" src="../static/js/china.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            repRegionStrategy();
+        });
+        var taskid = $("#taskid").val();
+        var mergeProvinces = function (chinaJson, names, properties) {//合并大区里省份的coordinates
+            var features = chinaJson.features;
+            var polygons = [];
+            var polygons2 = [];
+
+            for (var i = 0; i < names.length; i++) {
+                var polygonsCoordinates = [];
+                var polygonsEncodeOffsets = [];
+                for (var z = 0; z < names[i].length; z++) {
+                    for (var j = 0; j < features.length; j++) {
+                        if (features[j].properties.name == names[i][z]) {
+                            if (features[j].geometry.coordinates[0].constructor == String) {//合并coordinates
+                                for (var l = 0; l < features[j].geometry.coordinates.length; l++) {
+                                    polygonsCoordinates.push(features[j].geometry.coordinates[l]);
+                                }
+
+                            } else if (features[j].geometry.coordinates[0].constructor == Array) {
+                                for (var k = 0; k < features[j].geometry.coordinates.length; k++) {
+                                    for (var d = 0; d < features[j].geometry.coordinates[k].length; d++) {
+                                        polygonsCoordinates.push(features[j].geometry.coordinates[k][d]);
+                                    }
+                                }
+                            }
+
+                            if (features[j].geometry.encodeOffsets[0].constructor == String) {//合并encodeOffsets
+                                polygonsEncodeOffsets.push(features[j].geometry.encodeOffsets);
+                            } else if (features[j].geometry.encodeOffsets[0].constructor == Array) {
+                                for (var k = 0; k < features[j].geometry.encodeOffsets.length; k++) {
+                                    if (features[j].geometry.encodeOffsets[k][0].constructor == Array) {
+                                        for (var e = 0; e < features[j].geometry.encodeOffsets[k].length; e++) {
+                                            polygonsEncodeOffsets.push(features[j].geometry.encodeOffsets[k][e]);
+                                        }
+                                    } else {
+                                        polygonsEncodeOffsets.push(features[j].geometry.encodeOffsets[k]);
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+                }
+                polygons.push(polygonsCoordinates);
+                polygons2.push(polygonsEncodeOffsets);
+            }
+
+            // 构建新的合并区域
+            var features = [];
+
+            for (var a = 0; a < names.length; a++) {
+                var feature = {
+                    id: features.length.toString(),
+                    type: "FeatureCollection",
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: polygons[a],
+                        encodeOffsets: polygons2[a]
+                    },
+                    properties: {
+                        name: properties.name[a] || "",
+                        childNum: polygons[a].length
+                    }
+                };
+                if (properties.cp[a]) {
+                    feature.properties.cp = properties.cp[a];
+                }
+
+                // 将新的合并区域添加到地图中
+                features.push(feature);
+            }
+            chinaJson.features = features;
+
+        };
+
+        function repRegionStrategy() {
+            // debugger;
+            $.get('../static/js/china.json', function (chinaJson) {
+                var params = {
+                    names: [//把各个大区的省份用二维数组分开
+                        ['北京', '天津', '河北', '山西', '内蒙古'],
+                        ["黑龙江", "吉林", "辽宁"],
+                        ['山东', '江苏', '安徽', '江西', '浙江', '福建', '上海', '台湾'],
+                        ['河南', '湖北', '湖南'],
+                        ['广东', '广西', '海南', '香港', '澳门'],
+                        ['重庆', '四川', '云南', '西藏', '贵州'],
+                        ['陕西', '甘肃', '青海', '宁夏', '新疆']
+                    ],
+                    properties: {//自定义大区的名字，要和上面的大区省份一一对应
+                        name: ['华北', '东北', '华东', '华中', '华南', '西南', '西北'],
+                        cp: [//经纬度可以自己随意定义
+                            [116.24, 39.54],
+                            [126.32, 43.50],
+                            [121.28, 31.13],
+                            [114.20, 30.32],
+                            [113.15, 23.08],
+                            [104.04, 30.39],
+                            [103.49, 36.03]
+                        ]
+                    }
+                };
+
+                mergeProvinces(chinaJson, params.names, params.properties);
+
+                echarts.registerMap('china', chinaJson); // 注册地图
+                var pRChart = echarts.init(document.getElementById('echartsMapBox'));
+
+                $.ajax({
+                    method: 'GET',
+                    url: '/areashow/show?taskid=' + taskid,
+                    dataType: 'json',
+                    success: function (mydata) {
+                        var data1 = [//地图数据
+                            {
+                                "name": mydata[6].name,
+                                "value": mydata[6].value
+                            },
+                            {
+                                "name": mydata[15].name,
+                                "value": mydata[15].value
+                            },
+                            {
+                                "name": mydata[12].name,
+                                "value": mydata[12].value
+                            }, {
+                                "name": mydata[3].name,
+                                "value": mydata[3].value
+                            },
+                            ,
+                            {
+                                "name": mydata[0].name,
+                                "value": mydata[0].value
+                            },
+                            {
+                                "name": mydata[18].name,
+                                "value": mydata[18].value
+                            },
+                            {
+                                "name": mydata[9].name,
+                                "value": mydata[9].value
+                            }];
+                        option = {
+                            title: {
+                                text: '任务' + taskid,
+                                left: "560px",
+                                top: 'top',
+                                textStyle: {
+                                    color: '#fff3f8',
+                                    top: "50px"
+                                }
+                            },
+                            grid: {    //echarts地图距离容器位置
+                                left: '3%',
+                                top: '4%',
+                                bottom: '3%',
+                                containLabel: true,
+                            },
+                            /*legend:{
+                                orient: 'vertical',
+                                left: 'left',
+                                data:['1','2','3']
+                            },*/
+                            tooltip: {//鼠标放上去提示
+                                trigger: 'item',
+                                /*formatter: function (params) {
+                                    var res = params.name + '<br/>';
+                                    var myseries = option.series;
+                                    for (var i = 0; i < myseries.length; i++) {
+                                        //在内部继续循环series[i],从data中判断：当地区名称等于params.name的时候就将当前数据和名称添加到res中供显示
+                                        for (var k = 0; k < myseries[i].data.length; k++) {
+                                            //console.log(myseries[i].data[k].name);
+                                            //如果data数据中的name和地区名称一样
+                                            if (myseries[i].data[k].name == params.name) {
+                                                //将series数据系列每一项中的name和数据系列中当前地区的数据添加到res中
+                                                res += myseries[i].name + ':' + myseries[i].data[k].value + '<br />';
+                                            }
+                                        }
+                                    }
+                                    return res;
+                                }*/
+                                /*formatter: function () {
+                                    var myseries = option.series;
+                                    for (var i = 0; i < myseries.length; i++) {
+                                        for (var j = 0; j < myseries[i].data.length; j++) {
+                                            var res = params.properties.name[j] + '<br/>';
+                                            if (myseries[i].data[j].name == params.properties.name[i]) {
+                                                res += myseries[i].data[i].name + ' : ' + myseries[i].data[i].value + '</br>';
+                                            }
+                                        }
+                                    }
+                                    return res;
+                                }*/
+                            },
+                            /*//左侧小导航图标
+                            visualMap: {
+                                show: true,
+                                type: 'continuous',                     // 定义为连续型 viusalMap
+                                min: 10,                                  //指定 visualMapContinuous 组件的允许的最小值
+                                max: 100000,
+                                minOpen: true,                       //界面上会额外多出一个『< min』的选块
+                                maxOpen: true,
+                                realtime: true,
+                                itemWidth: 20,
+                                align: "auto",
+                                left: "50px",                              //组件离容器左侧的距离,'left', 'center', 'right','20%'
+                                top: "auto",
+                                orient: "vertical",
+                                hoverLink: true,
+                                inverse: false,
+                                text: ['高', '低'],
+                                inRange: {                               //定义 在选中范围中 的视觉元素
+                                    color: ['#f6efa6', '#ffb61e', '#ee9a00'],
+                                    symbolSize: [30, 100]
+                                },
+                                outOfRange: {  //定义 在选中范围外 的视觉元素。
+                                    color: ['#666', '#333', '#000'],
+                                    symbolSize: [30, 100]
+                                }
+                            },*/
+                            series: [
+                                {
+                                    name: '大区',//城市
+                                    type: 'map',
+                                    map: 'china',
+                                    geoIndex: 1,
+                                    aspectScale: 0.75, //长宽比
+                                    symbolSize: 20,
+                                    data: data1,
+                                    showLegendSymbol: true, // 存在legend时显示
+                                    label: {
+                                        normal: {
+                                            show: true,
+                                            textStyle: {
+                                                color: '#333'
+                                            }
+                                        },
+                                        emphasis: {//鼠标放上去时的状态
+                                            show: true,
+                                            textStyle: {
+                                                color: '#333'
+                                            }
+                                        }
+                                    },
+                                    roam: false,//禁止拖拽和伸缩
+                                    zoom: 1.05,
+                                    itemStyle: {
+                                        normal: {
+                                            areaColor: '#fffbbc',
+                                            borderColor: '#a5a279',
+                                            borderWidth: 1
+                                        },
+                                        emphasis: {
+                                            areaColor: '#ff2c00'
+                                        }
+                                    }
+                                }
+                            ]
+                        };
+                        pRChart.setOption(option, true);
+                        window.addEventListener("resize", function () {
+                            pRChart.resize();
+                        });
+                    }
+                });
+            });
+        }
+
+    </script>
+</div>
+<div class="container-fluid" style="margin-top: 55px">
+    <script type="application/javascript" th:src="@{../static/js/bootstrap.min.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/bootstrap-select.min.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/cronGen.min.js}"></script>
+    <link rel="stylesheet" th:href="@{../static/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{../static/css/cronGen.css}">
+    <table class="table table-bordered">
+        <thead>
+        <tr class="active">
+            <th>大区</th>
+            <th>商品id</th>
+            <th>点击数</th>
+            <th>商品名称</th>
+            <th>卖家类型</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item,itemStat:${arealist}">
+            <td th:id="area_+${item.taskid}" th:text="${item.area}"></td>
+            <td th:id="pid_+${item.taskid}" th:text="${item.productid}"></td>
+            <td th:id="click_+${item.taskid}" th:text="${item.clickCount}"></td>
+            <td th:id="name_+${item.taskid}" th:text="${item.productName}"></td>
+            <td th:id="status_+${item.taskid}" th:text="${item.productStatus}"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+

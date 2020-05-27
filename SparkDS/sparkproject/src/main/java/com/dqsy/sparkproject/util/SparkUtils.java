@@ -3,7 +3,8 @@ package com.dqsy.sparkproject.util;
 import com.alibaba.fastjson.JSONObject;
 import com.dqsy.sparkproject.conf.ConfigurationManager;
 import com.dqsy.sparkproject.constant.Constants;
-import com.dqsy.sparkproject.test.MockData;
+import com.dqsy.sparkproject.data.DataSource;
+import com.dqsy.sparkproject.data.ProdDataSource;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
@@ -16,7 +17,7 @@ import org.apache.spark.sql.hive.HiveContext;
 /**
  * Spark工具类
  *
- * @author Administrator
+ * @author liusinan
  */
 public class SparkUtils {
 
@@ -24,11 +25,8 @@ public class SparkUtils {
      * 根据当前是否本地测试的配置
      * 决定，如何设置SparkConf的master
      */
-    public static void setMaster(SparkConf conf) {
-        boolean local = ConfigurationManager.getBoolean(Constants.SPARK_LOCAL);
-        if (local) {
-            conf.setMaster("local");
-        }
+    public static void setMaster(SparkConf conf, boolean local) {
+        ConfigurationManager.setBoolean(local);
     }
 
     /**
@@ -48,8 +46,7 @@ public class SparkUtils {
     }
 
     /**
-     * 生成模拟数据
-     * 如果spark.local配置设置为true，则生成模拟数据；否则不生成
+     * 导入数据源
      *
      * @param sc
      * @param sqlContext
@@ -57,28 +54,35 @@ public class SparkUtils {
     public static void mockData(JavaSparkContext sc, SQLContext sqlContext) {
         boolean local = ConfigurationManager.getBoolean(Constants.SPARK_LOCAL);
         if (local) {
-            MockData.mock(sc, sqlContext);
+            DataSource.mock(sc, sqlContext);
+        } else {
+            ProdDataSource.mock(sc, sqlContext);
         }
     }
 
     /**
-     * 获取指定日期范围内的用户行为数据RDD
+     * 获取指定日期范围内的用户访问行为数据RDD
      *
-     * @param sqlContext
-     * @param taskParam
-     * @return
+     * @param sqlContext SQLContext
+     * @param taskParam  任务参数
+     * @return 行为数据RDD
      */
-    public static JavaRDD<Row> getActionRDDByDateRange(
-            SQLContext sqlContext, JSONObject taskParam) {
+    public static JavaRDD<Row> getActionRDDByDateRange(SQLContext sqlContext, JSONObject taskParam) {
         String startDate = ParamUtils.getParam(taskParam, Constants.PARAM_START_DATE);
         String endDate = ParamUtils.getParam(taskParam, Constants.PARAM_END_DATE);
 
         String sql =
                 "select * "
-                        + "from user_visit_action "
+                        + "from user_behavior "
                         + "where date>='" + startDate + "' "
                         + "and date<='" + endDate + "'";
-//				+ "and session_id not in('','','')"
+        /**
+         * 数据倾斜过滤导致倾斜的key
+         *
+         * 100万个key。只有2个key，数据量达到10万的。其他所有的key，对应的数量都是几十个。
+         * 这个时候，可以去取舍，在从hive表查询源数据的时候，直接在sql中用where条件，过滤掉某几个key。
+         */
+//        				+ "and session_id not in('','','')"
 
         Dataset<Row> actionDF = sqlContext.sql(sql);
 

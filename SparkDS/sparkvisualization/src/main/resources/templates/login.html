@@ -1,0 +1,19 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>登录</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+</head>
+<body style="background-color: burlywood">
+<div class="#" style="width: 200px;height: 300px;position: fixed;top: 20%;left: 0px;right: 0px;margin: auto">
+    <form id="fm" action="/user/login">
+        <h1>登录页面</h1>
+        账号名：<input class="but" id="uname" type="text" name="uname" placeholder="账   号"><br>
+        用户密码：<input class="but" id="upassword" type="password" name="upassword" placeholder="密   码"><br>
+        <input class="but" id="log" type="submit" value="立即登录"><br>
+    </form>
+    <p style="color: #dc3942" th:if="${msg}">用户名或密码错误，请重新登录！</p>
+    <a style="color: #4630ff" href="http://master:8077/register">还没有账号，点击注册！</a>
+</div>
+</body>
+</html>

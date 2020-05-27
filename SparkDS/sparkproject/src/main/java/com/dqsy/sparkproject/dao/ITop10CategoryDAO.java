@@ -4,11 +4,11 @@ import com.dqsy.sparkproject.domain.Top10Category;
 
 /**
  * top10品类DAO接口
- * @author Administrator
  *
+ * @author liusinan
  */
 public interface ITop10CategoryDAO {
 
-	void insert(Top10Category category);
-	
+    void insert(Top10Category category);
+
 }

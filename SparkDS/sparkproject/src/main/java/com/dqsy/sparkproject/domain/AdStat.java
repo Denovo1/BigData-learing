@@ -2,6 +2,7 @@ package com.dqsy.sparkproject.domain;
 
 /**
  * 广告实时统计
+ *
  * @author liusinan
  */
 public class AdStat {

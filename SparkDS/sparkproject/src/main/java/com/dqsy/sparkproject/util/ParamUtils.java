@@ -8,7 +8,7 @@ import com.dqsy.sparkproject.constant.Constants;
 /**
  * 参数工具类
  *
- * @author Administrator
+ * @author liusinan
  */
 public class ParamUtils {
 
@@ -22,7 +22,13 @@ public class ParamUtils {
         boolean local = ConfigurationManager.getBoolean(Constants.SPARK_LOCAL);
 
         if (local) {
-            return ConfigurationManager.getLong(taskType);
+            try {
+                if (args != null && args.length > 0) {
+                    return Long.valueOf(args[0]);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         } else {
             try {
                 if (args != null && args.length > 0) {
@@ -34,6 +40,20 @@ public class ParamUtils {
         }
 
         return null;
+    }
+
+    /**
+     * 从命令行参数中提取local
+     *
+     * @param args 命令行参数
+     * @return local
+     */
+    public static boolean getTaskStusFromArgs(String[] args) {
+        if (args[1].equals("true")) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**

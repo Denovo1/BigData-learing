@@ -1,0 +1,29 @@
+必要参数：
+	startDate（开始时间）[必选]，endDate（终止时间）[必选]：
+		说明：筛选要分析的时间范围
+		格式： yyyy-MM-DD
+	
+特定用户群组：
+	startAge，endAge：
+		说明：筛选要分析的用户年龄段
+		范围： 18 - 59
+
+	professionals：
+		说明：筛选要分析的用户职业
+		范围：professionals[0 - 59]
+
+	cities：
+		说明：筛选要分析的用户所在城市
+		范围：中国所有城市
+		
+	sex：
+		说明：筛选要分析的用户性别
+		范围： male（男），female（女），无未知
+
+targetPageFlow：
+	说明：页面流
+	范围：
+		1-10：普通页面
+		888：pay
+		666：order
+		

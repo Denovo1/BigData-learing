@@ -2,11 +2,12 @@ package com.dqsy.sparkproject.dao.impl;
 
 import com.dqsy.sparkproject.dao.IAdUserClickCountDAO;
 import com.dqsy.sparkproject.domain.AdUserClickCount;
-import com.dqsy.sparkproject.jdbc.JDBCHelper;
-import com.dqsy.sparkproject.model.AdUserClickCountQueryResult;
+import com.dqsy.sparkproject.util.DBCPUtil;
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
+import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -16,79 +17,54 @@ import java.util.List;
  */
 public class AdUserClickCountDAOImpl implements IAdUserClickCountDAO {
 
+    private QueryRunner qr = new QueryRunner(DBCPUtil.getDataSource());
+
     @Override
     public void updateBatch(List<AdUserClickCount> adUserClickCounts) {
-        JDBCHelper jdbcHelper = JDBCHelper.getInstance();
+        //①准备两个容器分别存储要更新的AdUserClickCount实例和要插入的AdUserClickCount实例
+        LinkedList<AdUserClickCount> updateContainer = new LinkedList<>();
+        LinkedList<AdUserClickCount> insertContainer = new LinkedList<>();
+        try {
+            //②填充容器（一次与db中的记录进行比对，若存在，就添加到更新容器中；否则，添加到保存的容器中）
+            String sql = "select click_count from advertisement_user_clickcount where `date`=? and user_id=? and ad_id=?";
+            for (AdUserClickCount bean : adUserClickCounts) {
+                //ScalarHandler:用于统计表记录的条数
+                //BeanHandler:用来将表中每条记录封装到一个实例中
+                //BeanListHandler: 用来将表中所有记录封装到一个集合中，集合中每个元素即为：每条记录所封装的实体类对象
 
-        // 首先对用户广告点击量进行分类，分成待插入的和待更新的
-        List<AdUserClickCount> insertAdUserClickCounts = new ArrayList<AdUserClickCount>();
-        List<AdUserClickCount> updateAdUserClickCounts = new ArrayList<AdUserClickCount>();
-
-        String selectSQL = "SELECT count(*) FROM ad_user_click_count "
-                + "WHERE date=? AND user_id=? AND ad_id=? ";
-        Object[] selectParams = null;
-
-        for (AdUserClickCount adUserClickCount : adUserClickCounts) {
-            final AdUserClickCountQueryResult queryResult = new AdUserClickCountQueryResult();
-
-            selectParams = new Object[]{adUserClickCount.getDate(),
-                    adUserClickCount.getUserid(), adUserClickCount.getAdid()};
-
-            jdbcHelper.executeQuery(selectSQL, selectParams, new JDBCHelper.QueryCallback() {
-
-                @Override
-                public void process(ResultSet rs) throws Exception {
-                    if (rs.next()) {
-                        int count = rs.getInt(1);
-                        queryResult.setCount(count);
-                    }
+                Object click_count = qr.query(sql, new ScalarHandler<>("click_count"), bean.getDate(), bean.getUserid(), bean.getAdid());
+                if (click_count == null) {
+                    insertContainer.add(bean);
+                } else {
+                    updateContainer.add(bean);
                 }
-            });
-
-            int count = queryResult.getCount();
-
-            if (count > 0) {
-                updateAdUserClickCounts.add(adUserClickCount);
-            } else {
-                insertAdUserClickCounts.add(adUserClickCount);
             }
+
+            //③对更新的容器进行批量update操作
+            // click_count=click_count+?  <~ ? 证明?传过来的是本batch新增的click_count,不包括过往的历史  (调用处调用：reduceByKey)
+            // click_count=?  <~ ? 证明?传过来的是总的click_count （调用出：使用了updateStateByKey）
+
+            sql = "update advertisement_user_clickcount set click_count=click_count+? where `date`=? and user_id=? and ad_id=?";
+            Object[][] params = new Object[updateContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdUserClickCount bean = updateContainer.get(i);
+                params[i] = new Object[]{bean.getClickCount(), bean.getDate(), bean.getUserid(), bean.getAdid()};
+
+            }
+            qr.batch(sql, params);
+
+            //④对保存的容器进行批量insert操作
+            sql = "insert into advertisement_user_clickcount values(?,?,?,?)";
+            params = new Object[insertContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdUserClickCount bean = insertContainer.get(i);
+                params[i] = new Object[]{bean.getDate(), bean.getUserid(), bean.getAdid(), bean.getClickCount()};
+            }
+            qr.batch(sql, params);
+
+        } catch (SQLException e1) {
+            e1.printStackTrace();
         }
-
-        // 执行批量插入
-        String insertSQL = "INSERT INTO ad_user_click_count VALUES(?,?,?,?)";
-        List<Object[]> insertParamsList = new ArrayList<Object[]>();
-
-        for (AdUserClickCount adUserClickCount : insertAdUserClickCounts) {
-            Object[] insertParams = new Object[]{adUserClickCount.getDate(),
-                    adUserClickCount.getUserid(),
-                    adUserClickCount.getAdid(),
-                    adUserClickCount.getClickCount()};
-            insertParamsList.add(insertParams);
-        }
-
-        jdbcHelper.executeBatch(insertSQL, insertParamsList);
-
-        // 执行批量更新
-
-        // 突然间发现，（不好意思），小bug，其实很正常，不要太以为然
-        // 作为一个课程，复杂的业务逻辑
-        // 如果你就是像某些课程，来一个小案例（几个课时），不会犯什么bug
-        // 但是真正课程里面讲解企业实际项目中复杂的业务需求时，都很正常，有个小bug
-        //click_count=click_count+?
-
-        String updateSQL = "UPDATE ad_user_click_count SET click_count=click_count+? "
-                + "WHERE date=? AND user_id=? AND ad_id=? ";
-        List<Object[]> updateParamsList = new ArrayList<Object[]>();
-
-        for (AdUserClickCount adUserClickCount : updateAdUserClickCounts) {
-            Object[] updateParams = new Object[]{adUserClickCount.getClickCount(),
-                    adUserClickCount.getDate(),
-                    adUserClickCount.getUserid(),
-                    adUserClickCount.getAdid()};
-            updateParamsList.add(updateParams);
-        }
-
-        jdbcHelper.executeBatch(updateSQL, updateParamsList);
     }
 
     /**
@@ -99,32 +75,22 @@ public class AdUserClickCountDAOImpl implements IAdUserClickCountDAO {
      * @param adid   广告id
      * @return
      */
+    @Override
     public int findClickCountByMultiKey(String date, long userid, long adid) {
-        String sql = "SELECT click_count "
-                + "FROM ad_user_click_count "
-                + "WHERE date=? "
-                + "AND user_id=? "
-                + "AND ad_id=?";
+        int result = 0;
+        try {
+            String sql = "SELECT click_count "
+                    + "FROM advertisement_user_clickcount "
+                    + "WHERE date=? "
+                    + "AND user_id=? "
+                    + "AND ad_id=?";
+            int click_count = qr.query(sql, new ScalarHandler<>("click_count"), date, userid, adid);
+            result = click_count;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
-        Object[] params = new Object[]{date, userid, adid};
-
-        final AdUserClickCountQueryResult queryResult = new AdUserClickCountQueryResult();
-
-        JDBCHelper jdbcHelper = JDBCHelper.getInstance();
-        jdbcHelper.executeQuery(sql, params, new JDBCHelper.QueryCallback() {
-
-            @Override
-            public void process(ResultSet rs) throws Exception {
-                if (rs.next()) {
-                    int clickCount = rs.getInt(1);
-                    queryResult.setClickCount(clickCount);
-                }
-            }
-        });
-
-        int clickCount = queryResult.getClickCount();
-
-        return clickCount;
+        return result;
     }
 
 }

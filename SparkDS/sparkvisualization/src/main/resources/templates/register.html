@@ -1,0 +1,20 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>注册</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+</head>
+<body style="background-color: aquamarine">
+<div class="bg" style="width: 200px;height: 300px;position: fixed;top: 20%;left: 0px;right: 0px;margin: auto">       
+    <form method="get" action="/user/register">
+        <h1>注册页面</h1>           
+        <div class="password">账号名： <input type="text" name="uname" value="" placeholder="请输入用户名"></div>
+                   
+        <div class="password">用户密码：<input type="password" name="password" value="" placeholder="请输入账号密码"></div>
+        <div class="register"><input class="but" id="log" type="submit" value="注册"></div>
+               
+    </form>
+          <p style="color: #dc3942" th:if="${msg}">用户名已存在，请重新注册！</p>
+</div>
+</body>
+</html>

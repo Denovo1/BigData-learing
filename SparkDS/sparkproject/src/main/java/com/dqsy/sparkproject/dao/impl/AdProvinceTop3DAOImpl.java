@@ -2,66 +2,119 @@ package com.dqsy.sparkproject.dao.impl;
 
 import com.dqsy.sparkproject.dao.IAdProvinceTop3DAO;
 import com.dqsy.sparkproject.domain.AdProvinceTop3;
-import com.dqsy.sparkproject.jdbc.JDBCHelper;
+import com.dqsy.sparkproject.domain.AdProvinceTop3Temp;
+import com.dqsy.sparkproject.util.DBCPUtil;
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.BeanListHandler;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 
-import java.util.ArrayList;
+import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * 各省份top3热门广告DAO实现类
- * @author Administrator
  *
+ * @author liusinan
  */
 public class AdProvinceTop3DAOImpl implements IAdProvinceTop3DAO {
 
-	@Override
-	public void updateBatch(List<AdProvinceTop3> adProvinceTop3s) {
-		JDBCHelper jdbcHelper = JDBCHelper.getInstance();
-		
-		// 先做一次去重（date_province）
-		List<String> dateProvinces = new ArrayList<String>();
-		
-		for(AdProvinceTop3 adProvinceTop3 : adProvinceTop3s) {
-			String date = adProvinceTop3.getDate();
-			String province = adProvinceTop3.getProvince();
-			String key = date + "_" + province;
-			
-			if(!dateProvinces.contains(key)) {
-				dateProvinces.add(key);
-			}
-		}
-		
-		// 根据去重后的date和province，进行批量删除操作
-		String deleteSQL = "DELETE FROM ad_province_top3 WHERE date=? AND province=?";
-		
-		List<Object[]> deleteParamsList = new ArrayList<Object[]>();
-		
-		for(String dateProvince : dateProvinces) {
-			String[] dateProvinceSplited = dateProvince.split("_");
-			String date = dateProvinceSplited[0];
-			String province = dateProvinceSplited[1];
-			
-			Object[] params = new Object[]{date, province};
-			deleteParamsList.add(params);
-		}
-		
-		jdbcHelper.executeBatch(deleteSQL, deleteParamsList);
-		
-		// 批量插入传入进来的所有数据
-		String insertSQL = "INSERT INTO ad_province_top3 VALUES(?,?,?,?)";  
-		
-		List<Object[]> insertParamsList = new ArrayList<Object[]>();
-		
-		for(AdProvinceTop3 adProvinceTop3 : adProvinceTop3s) {
-			Object[] params = new Object[]{adProvinceTop3.getDate(),
-					adProvinceTop3.getProvince(),
-					adProvinceTop3.getAdid(),
-					adProvinceTop3.getClickCount()};
-			
-			insertParamsList.add(params);
-		}
-		
-		jdbcHelper.executeBatch(insertSQL, insertParamsList);
-	}
+    private QueryRunner qr = new QueryRunner(DBCPUtil.getDataSource());
+
+    @Override
+    public void updateBatch(List<AdProvinceTop3> adProvinceTop3s) {
+        //步骤：
+        //①准备两个容器分别存储要更新的AdUserClickCount实例和要插入的AdUserClickCount实例
+        LinkedList<AdProvinceTop3> updateContainer = new LinkedList<>();
+        LinkedList<AdProvinceTop3> insertContainer = new LinkedList<>();
+        //②填充容器（一次与db中的记录进行比对，若存在，就添加到更新容器中；否则，添加到保存的容器中）
+        String sql = "select click_count from advertisement_province_top3 where `date`=? and province=? and ad_id=?";
+
+        try {
+            for (AdProvinceTop3 bean : adProvinceTop3s) {
+                Object click_count = qr.query(sql, new ScalarHandler<>("click_count"), bean.getDate(), bean.getProvince(), bean.getAdid());
+                if (click_count == null) {
+                    insertContainer.add(bean);
+                } else {
+                    updateContainer.add(bean);
+                }
+            }
+            //③对更新的容器进行批量update操作
+            // click_count=click_count+?  <~ ? 证明?传过来的是本batch新增的click_count,不包括过往的历史  (调用处调用：reduceByKey)
+            // click_count=?  <~ ? 证明?传过来的是总的click_count （调用出：使用了updateStateByKey）
+            sql = "update advertisement_province_top3 set click_count=?  where `date`=? and province=? and ad_id=?";
+            Object[][] params = new Object[updateContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdProvinceTop3 bean = updateContainer.get(i);
+                params[i] = new Object[]{bean.getClickCount(), bean.getDate(), bean.getProvince(), bean.getAdid()};
+            }
+            qr.batch(sql, params);
+            //④对保存的容器进行批量insert操作
+            saveToDB(insertContainer);
+            //对db中已经保存的数据进行筛选（只选出表中相同省份的前三条）
+            sql = "select * from advertisement_province_top3 order by province,click_count desc";
+            List<AdProvinceTop3> allBean = qr.query(sql, new BeanListHandler<AdProvinceTop3>(AdProvinceTop3.class));
+
+            StringBuilder builder = new StringBuilder();
+            builder.append("SELECT province ,(adIdTypeCnt-3) delCnt FROM ( ");
+            builder.append("SELECT COUNT(*) adIdTypeCnt, province FROM ");
+            builder.append("(SELECT * FROM advertisement_province_top3 ORDER BY province,click_count DESC) t ");
+            builder.append("GROUP BY province ");
+            builder.append(")t2 WHERE adIdTypeCnt>3");
+            //存储了相应省份要删除的多余的记录条数
+            List<AdProvinceTop3Temp> willDelBeans = qr.query(builder.toString(), new BeanListHandler<AdProvinceTop3Temp>(AdProvinceTop3Temp.class));
+
+            //真正要删除的记录
+            List<AdProvinceTop3> realDelBeans = new LinkedList<>();
+
+            //存储每个省份对应的信息
+            List<AdProvinceTop3> perProvince = new LinkedList<>();
+
+            //找出要删除的bean
+            for (AdProvinceTop3Temp delBean : willDelBeans) {
+                //清空容器
+                perProvince.clear();
+
+                String provinceName = delBean.getProvince();
+                int delCnt = delBean.getDelCnt();
+                for (AdProvinceTop3 beanTmp : allBean) {
+                    if (provinceName != null && provinceName.equals(beanTmp.getProvince())) {
+                        perProvince.add(beanTmp);
+                    }
+                }
+
+                //从当前省份对应的容器中筛选出待删除的省份信息，再保存到最终待删除的容器中
+                for (int i = 3; i < perProvince.size(); i++) {
+                    realDelBeans.add(perProvince.get(i));
+                }
+            }
+
+            //清空表
+            for (AdProvinceTop3 realDelBean : realDelBeans) {
+                qr.update("delete from advertisement_province_top3 where  `date`=? and province=? and ad_id=?", realDelBean.getDate(), realDelBean.getProvince(), realDelBean.getAdid());
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 保存到DB中
+     *
+     * @param insertContainer 容器
+     * @throws SQLException 可能会SQLException
+     */
+    private void saveToDB(LinkedList<AdProvinceTop3> insertContainer) throws SQLException {
+        String sql;
+        Object[][] params;
+        sql = "insert into advertisement_province_top3 values(?,?,?,?)";
+        params = new Object[insertContainer.size()][];
+        for (int i = 0; i < params.length; i++) {
+            AdProvinceTop3 bean = insertContainer.get(i);
+            params[i] = new Object[]{bean.getDate(), bean.getProvince(), bean.getAdid(), bean.getClickCount()};
+        }
+        qr.batch(sql, params);
+    }
 
 }

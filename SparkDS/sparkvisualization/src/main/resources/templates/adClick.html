@@ -1,0 +1,59 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>模拟广告点击</title>
+    <link href="../static/favicon.ico" type="image/x-icon" rel="shortcut icon">
+</head>
+<body>
+<div class="top">广告点击实时统计</div>
+<div class="adimg">
+    <img src="../static/img/ad1.jpg" style="CURSOR: hand" onclick='ad1click()'/>
+    <img src="../static/img/ad2.jpg" style="CURSOR: hand" onclick='ad2click()'/>
+    <!--<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>-->
+    <script type="application/javascript" th:src="@{../static/js/jquery_3.4.1_jquery.js}"></script>
+    <input type="hidden" id="uid" th:value='${uid}'>
+</div>
+
+<script th:inline="javascript">
+    function ad1click() {
+        var uid = $("#uid").val();
+        var adid = 1;
+        $.ajax({
+            cache: false,
+            type: 'POST',
+            url: '/adshow/adClick?uid=' + uid + "&adid=" + adid,
+            data: {
+                "uid": uid,
+                "adid": adid
+            },
+            dataType: 'JSON',
+            contentType: 'application/json',
+            success: function (data) {
+                alert(data);
+            }
+        });
+    }
+
+    function ad2click() {
+        var uid = $("#uid").val();
+        var adid = 2;
+        $.ajax({
+            cache: false,
+            type: 'POST',
+            url: '/adshow/adClick?uid=' + uid + "&adid=" + adid,
+            data: {
+                "uid": uid,
+                "adid": adid
+            },
+            dataType: 'JSON',
+            contentType: 'application/json',
+            success: function (data) {
+                alert(data);
+            }
+        });
+    }
+</script>
+</body>
+</html>
+

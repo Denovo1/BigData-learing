@@ -5,14 +5,16 @@ import com.dqsy.sparkproject.dao.impl.*;
 
 /**
  * DAO工厂类
+ *
  * @author liusinan
  */
 public class DAOFactory {
     /**
      * 获取任务管理DAO
+     *
      * @return
      */
-    public static ITaskDAO getTaskDAO(){
+    public static ITaskDAO getTaskDAO() {
         return new TaskDAOImpl();
     }
 

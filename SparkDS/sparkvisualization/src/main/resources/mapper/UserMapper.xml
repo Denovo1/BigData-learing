@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dqsy.sparkvisualization.mapper.UserMapper">
+    <resultMap id="BaseResultMap" type="com.dqsy.sparkvisualization.entity.User">
+        <!--@mbg.generated-->
+        <id column="user_id" jdbcType="INTEGER" property="userId"/>
+        <result column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="user_password" jdbcType="VARCHAR" property="userPassword"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        user_id, user_name, user_password
+    </sql>
+
+    <insert id="insert" keyColumn="user_id" keyProperty="userId" parameterType="com.dqsy.sparkvisualization.entity.User"
+            useGeneratedKeys="true">
+        insert into user (user_name, user_password)
+        values (#{userName,jdbcType=VARCHAR}, #{userPassword,jdbcType=VARCHAR})
+    </insert>
+
+    <select id="findByUserName" resultMap="BaseResultMap">
+        select * from user where user_name=#{username,jdbcType=VARCHAR}
+    </select>
+
+
+    <!--<select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+      &lt;!&ndash;@mbg.generated&ndash;&gt;
+      select
+      <include refid="Base_Column_List" />
+      from user
+      where user_id = #{userId,jdbcType=INTEGER}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+      &lt;!&ndash;@mbg.generated&ndash;&gt;
+      delete from user
+      where user_id = #{userId,jdbcType=INTEGER}
+    </delete>-->
+    <!--<insert id="insertSelective" keyColumn="user_id" keyProperty="userId" parameterType="com.dqsy.sparkvisualization.entity.User" useGeneratedKeys="true">
+      &lt;!&ndash;@mbg.generated&ndash;&gt;
+      insert into user
+      <trim prefix="(" suffix=")" suffixOverrides=",">
+        <if data="userName != null">
+          user_name,
+        </if>
+        <if data="userPassword != null">
+          user_password,
+        </if>
+        <if data="userStatus != null">
+          user_status,
+        </if>
+        <if data="userLogicflag != null">
+          user_logicflag,
+        </if>
+      </trim>
+      <trim prefix="values (" suffix=")" suffixOverrides=",">
+        <if data="userName != null">
+          #{userName,jdbcType=VARCHAR},
+        </if>
+        <if data="userPassword != null">
+          #{userPassword,jdbcType=VARCHAR},
+        </if>
+        <if data="userStatus != null">
+          #{userStatus,jdbcType=INTEGER},
+        </if>
+        <if data="userLogicflag != null">
+          #{userLogicflag,jdbcType=INTEGER},
+        </if>
+      </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.dqsy.sparkvisualization.entity.User">
+      &lt;!&ndash;@mbg.generated&ndash;&gt;
+      update user
+      <set>
+        <if data="userName != null">
+          user_name = #{userName,jdbcType=VARCHAR},
+        </if>
+        <if data="userPassword != null">
+          user_password = #{userPassword,jdbcType=VARCHAR},
+        </if>
+        <if data="userStatus != null">
+          user_status = #{userStatus,jdbcType=INTEGER},
+        </if>
+        <if data="userLogicflag != null">
+          user_logicflag = #{userLogicflag,jdbcType=INTEGER},
+        </if>
+      </set>
+      where user_id = #{userId,jdbcType=INTEGER}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.dqsy.sparkvisualization.entity.User">
+      &lt;!&ndash;@mbg.generated&ndash;&gt;
+      update user
+      set user_name = #{userName,jdbcType=VARCHAR},
+        user_password = #{userPassword,jdbcType=VARCHAR},
+        user_status = #{userStatus,jdbcType=INTEGER},
+        user_logicflag = #{userLogicflag,jdbcType=INTEGER}
+      where user_id = #{userId,jdbcType=INTEGER}
+    </update>-->
+
+</mapper>

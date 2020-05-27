@@ -1,7 +1,8 @@
 package com.dqsy.sparkproject.model;
 
 /**
- *  用户广告点击量查询结果
+ * 用户广告点击量查询结果
+ *
  * @author liusinan
  */
 public class AdUserClickCountQueryResult {

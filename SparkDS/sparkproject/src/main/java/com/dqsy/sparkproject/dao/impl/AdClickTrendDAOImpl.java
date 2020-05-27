@@ -2,109 +2,70 @@ package com.dqsy.sparkproject.dao.impl;
 
 import com.dqsy.sparkproject.dao.IAdClickTrendDAO;
 import com.dqsy.sparkproject.domain.AdClickTrend;
-import com.dqsy.sparkproject.jdbc.JDBCHelper;
-import com.dqsy.sparkproject.model.AdClickTrendQueryResult;
+import com.dqsy.sparkproject.util.DBCPUtil;
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
+import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * 广告点击趋势DAO实现类
  *
- * @author Administrator
+ * @author liusinan
  */
 public class AdClickTrendDAOImpl implements IAdClickTrendDAO {
 
+    private QueryRunner qr = new QueryRunner(DBCPUtil.getDataSource());
+
     @Override
     public void updateBatch(List<AdClickTrend> adClickTrends) {
-        JDBCHelper jdbcHelper = JDBCHelper.getInstance();
+        try {
+            //步骤：
+            //①准备两个容器分别存储要更新的AdUserClickCount实例和要插入的AdUserClickCount实例
+            LinkedList<AdClickTrend> updateContainer = new LinkedList<>();
+            LinkedList<AdClickTrend> insertContainer = new LinkedList<>();
+            //②填充容器（一次与db中的记录进行比对，若存在，就添加到更新容器中；否则，添加到保存的容器中）
+            String sql = "select click_count from advertisement_real_time_click where `date`=? and ad_id=? and minute=? and hour=?";
+            for (AdClickTrend bean : adClickTrends) {
+                Object click_count = qr.query(sql, new ScalarHandler<>("click_count"), bean.getDate(), bean.getAdid(), bean.getMinute(), bean.getHour());
+                if (click_count == null) {
+                    insertContainer.add(bean);
+                } else {
+                    updateContainer.add(bean);
+                }
+            }
 
-        // 区分出来哪些数据是要插入的，哪些数据是要更新的
-        // 提醒一下，比如说，通常来说，同一个key的数据（比如rdd，包含了多条相同的key）
+            //③对更新的容器进行批量update操作
+            // click_count=click_count+?  <~ ? 证明?传过来的是本batch新增的click_count,不包括过往的历史  (调用处调用：reduceByKey)
+            // click_count=?  <~ ? 证明?传过来的是总的click_count （调用出：使用了updateStateByKey）
+            sql = "update advertisement_real_time_click set click_count=?  where `date`=? and ad_id=? and minute=? and hour=?";
+            Object[][] params = new Object[updateContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdClickTrend bean = updateContainer.get(i);
+                params[i] = new Object[]{bean.getClickCount(), bean.getDate(), bean.getAdid(), bean.getMinute(), bean.getHour()};
+            }
+            qr.batch(sql, params);
+
+            //④对保存的容器进行批量insert操作
+            sql = "insert into advertisement_real_time_click values(?,?,?,?,?)";
+            params = new Object[insertContainer.size()][];
+            for (int i = 0; i < params.length; i++) {
+                AdClickTrend bean = insertContainer.get(i);
+                params[i] = new Object[]{bean.getDate(), bean.getHour(), bean.getMinute(), bean.getAdid(), bean.getClickCount()};
+            }
+            qr.batch(sql, params);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // 通常来说，同一个key的数据（比如rdd，包含了多条相同的key）
         // 通常是在一个分区内的
         // 一般不会出现重复插入的
+        // 但是会出现key重复插入的情况就给一个create_time字段
 
-        // 但是根据业务需求来
-        // 各位自己在实际做项目的时候，一定要自己思考，不要生搬硬套
-        // 如果说可能会出现key重复插入的情况
-        // 给一个create_time字段
-
-        // j2ee系统在查询的时候，直接查询最新的数据即可（规避掉重复插入的问题）
-
-        List<AdClickTrend> updateAdClickTrends = new ArrayList<AdClickTrend>();
-        List<AdClickTrend> insertAdClickTrends = new ArrayList<AdClickTrend>();
-
-        String selectSQL = "SELECT count(*) "
-                + "FROM ad_click_trend "
-                + "WHERE date=? "
-                + "AND hour=? "
-                + "AND minute=? "
-                + "AND ad_id=?";
-
-        for (AdClickTrend adClickTrend : adClickTrends) {
-            final AdClickTrendQueryResult queryResult = new AdClickTrendQueryResult();
-
-            Object[] params = new Object[]{adClickTrend.getDate(),
-                    adClickTrend.getHour(),
-                    adClickTrend.getMinute(),
-                    adClickTrend.getAdid()};
-
-            jdbcHelper.executeQuery(selectSQL, params, new JDBCHelper.QueryCallback() {
-
-                @Override
-                public void process(ResultSet rs) throws Exception {
-                    if (rs.next()) {
-                        int count = rs.getInt(1);
-                        queryResult.setCount(count);
-                    }
-                }
-
-            });
-
-            int count = queryResult.getCount();
-            if (count > 0) {
-                updateAdClickTrends.add(adClickTrend);
-            } else {
-                insertAdClickTrends.add(adClickTrend);
-            }
-        }
-
-        // 执行批量更新操作
-        String updateSQL = "UPDATE ad_click_trend SET click_count=? "
-                + "WHERE date=? "
-                + "AND hour=? "
-                + "AND minute=? "
-                + "AND ad_id=?";
-
-        List<Object[]> updateParamsList = new ArrayList<Object[]>();
-
-        for (AdClickTrend adClickTrend : updateAdClickTrends) {
-            Object[] params = new Object[]{adClickTrend.getClickCount(),
-                    adClickTrend.getDate(),
-                    adClickTrend.getHour(),
-                    adClickTrend.getMinute(),
-                    adClickTrend.getAdid()};
-            updateParamsList.add(params);
-        }
-
-        jdbcHelper.executeBatch(updateSQL, updateParamsList);
-
-        // 执行批量插入操作
-        String insertSQL = "INSERT INTO ad_click_trend VALUES(?,?,?,?,?)";
-
-        List<Object[]> insertParamsList = new ArrayList<Object[]>();
-
-        for (AdClickTrend adClickTrend : insertAdClickTrends) {
-            Object[] params = new Object[]{adClickTrend.getDate(),
-                    adClickTrend.getHour(),
-                    adClickTrend.getMinute(),
-                    adClickTrend.getAdid(),
-                    adClickTrend.getClickCount()};
-            insertParamsList.add(params);
-        }
-
-        jdbcHelper.executeBatch(insertSQL, insertParamsList);
     }
 
 }

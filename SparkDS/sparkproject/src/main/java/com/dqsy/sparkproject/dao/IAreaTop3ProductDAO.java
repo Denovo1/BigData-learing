@@ -6,11 +6,11 @@ import java.util.List;
 
 /**
  * 各区域top3热门商品DAO接口
- * @author Administrator
  *
+ * @author liusinan
  */
 public interface IAreaTop3ProductDAO {
 
-	void insertBatch(List<AreaTop3Product> areaTopsProducts);
-	
+    void insertBatch(List<AreaTop3Product> areaTopsProducts);
+
 }

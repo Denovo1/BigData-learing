@@ -1,0 +1,341 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Session</title>
+    <link href="../static/favicon.ico" type="image/x-icon" rel="shortcut icon">
+    <!--<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/echarts/4.6.0/echarts.min.js"></script>-->
+    <script type="application/javascript" th:src="@{../static/js/jquery_3.4.1_jquery.js}"></script>
+    <script type="application/javascript" th:src="@{../static/js/echarts_4.6.0_echarts.js}"></script>
+    <style>
+        .div-a {
+            float: left;
+            width: 39%;
+            border: 0px solid
+        }
+
+        .div-b {
+            float: left;
+            width: 39%;
+            border: 0px solid
+        }
+
+        .div-c {
+            float: right;
+            width: 39%;
+            border: 0px solid
+        }
+
+        .top {
+            width: 100%;
+            height: 50px;
+            line-height: 80px;
+            text-align: center;
+            /*border:1px solid #F00;*/
+            font-weight: bold;
+            font-size: 20px;
+            color: #9d9d9d;
+        }
+
+        body {
+            background-image: url("/static/img/bak1.jpg");
+            background-attachment: fixed;
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body>
+<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+<div class="top">用户会话分析</div>
+<div style="margin-top:50px;margin-left: 40px;width: 600px;height: 600px;float: left" th:value='${str}'>
+    <div id="visitlength" class="div-a" style="width: 700px;height:350px;" th:value='${str}'></div>
+    <div id="visitstep" class="div-b" style="width: 700px;height:500px;" th:value='${str}'></div>
+    <input type="hidden" id="str" th:value='${str}'>
+    <input type="hidden" id="taskid" th:value='${taskid}'>
+</div>
+<div style="margin-top:50px;margin-right:50px;width: 800px;float: right">
+    <div id="top10show" class="div-c" style="width: 800px;height:800px;"></div>
+</div>
+
+<script type="text/javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('visitlength', 'dark'));
+    var taskid = $("#taskid").val();
+    // 指定图表的配置项和数据
+    $.ajax({
+        method: 'GET',
+        url: '/sessionshow/show?taskid=' + taskid,
+        dataType: 'json',
+        success: function (data) {
+            var option = {
+                title: {
+                    text: '用户访问时长统计',
+                    subtext: '            任务' + data[0].taskid,
+                    textStyle: {
+                        color: '#fff3f8'
+                    }
+                },
+                tooltip: {},
+                legend: {
+                    data: ['浏览量'],
+                    textStyle: {
+                        color: '#fff3f8'
+                    }
+                },
+                xAxis: {
+                    data: ['1s-3s', '4s-6s', '7s-9s', '10s-30s', '30s-60s', '1m-3m', '3m-10m', '10m-30', '30m'],
+                    axisLabel: {
+                        show: true,
+                        interval: 0,   // {number}
+                        /*rotate: 30,
+                        margin: 8*//*rotate: 30,
+                        margin: 8*/
+                        textStyle: {
+                            color: '#fff3f8'
+                        }
+                    }
+                },
+                yAxis: {},
+                series: [{
+                    name: '浏览量',
+                    type: 'bar',
+                    data: [data[0].visit_length_1s_3s_ratio,
+                        data[0].visit_length_4s_6s_ratio,
+                        data[0].visit_length_7s_9s_ratio,
+                        data[0].visit_length_10s_30s_ratio,
+                        data[0].visit_length_30s_60s_ratio,
+                        data[0].visit_length_1m_3m_ratio,
+                        data[0].visit_length_3m_10m_ratio,
+                        data[0].visit_length_10m_30m_ratio,
+                        data[0].visit_length_30m_ratio],
+                    itemStyle: {
+                        color: '#88ff21'
+                    }
+                }],
+                textStyle: {
+                    color: '#fff3f8'
+                }
+            };
+            myChart.setOption(option);
+        }
+    });
+</script>
+
+<script type="text/javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var myChart1 = echarts.init(document.getElementById('visitstep', 'dark'));
+    var taskid = $("#taskid").val();
+    // 指定图表的配置项和数据
+    $.ajax({
+        method: 'GET',
+        url: '/sessionshow/show?taskid=' + taskid,
+        dataType: 'json',
+        success: function (data) {
+            var stepJson = JSON.parse($("#str").val());
+
+            option = {
+
+                title: {
+                    text: '页面浏览深度比例',
+                    subtext: '任务' + data[0].taskid,
+                    left: 'center',
+
+                    textStyle: {
+                        color: '#fff3f8'
+                    }
+                },
+
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} ({d}%)'
+                },
+                visualMap: {
+                    show: false,
+                    min: 1,
+                    max: 800,
+                    inRange: {
+                        colorLightness: [0, 1]
+                    }
+                },
+                series: [
+                    {
+                        name: '浏览时长比例',
+                        type: 'pie',
+                        radius: '55%',
+                        center: ['50%', '50%'],
+                        data: stepJson.sort(function (a, b) {
+                            return a.value - b.value;
+                        }),
+                        roseType: 'radius',
+                        label: {
+                            color: 'rgba(255, 255, 255, 0.3)'
+                        },
+                        labelLine: {
+                            lineStyle: {
+                                color: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            smooth: 0.2,
+                            length: 10,
+                            length2: 20
+                        },
+                        itemStyle: {
+                            color: '#fff800',
+                            shadowBlur: 200,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+
+                        animationType: 'scale',
+                        animationEasing: 'elasticOut',
+                        animationDelay: function (idx) {
+                            return Math.random() * 200;
+                        }
+                    }
+                ],
+                textStyle: {
+                    color: '#fff3f8'
+                }
+            };
+            myChart1.setOption(option);
+        }
+    });
+</script>
+
+<script type="text/javascript">
+    var myChart2 = echarts.init(document.getElementById('top10show'));
+    var taskid = $("#taskid").val();
+    $.ajax({
+        method: 'GET',
+        url: '/sessionshow/topshow?taskid=' + taskid,
+        dataType: 'json',
+        success: function (data) {
+            option = null;
+            option = {
+                title: {
+                    text: 'TOP10品类',
+                    subtext: '            任务' + data[0].taskid,
+                    textStyle: {
+                        color: '#fff3f8'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['点击次数', '下单次数', '支付次数'],
+                    textStyle: {
+                        color: '#fff3f8'
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    axisLabel: {
+                        show: true,
+                        interval: 0,   // {number}
+                        /*rotate: 30,
+                        margin: 8*//*rotate: 30,
+                        margin: 8*/
+                        textStyle: {
+                            color: '#fff3f8'
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: [
+                        data[9].categoryid,
+                        data[8].categoryid,
+                        data[7].categoryid,
+                        data[6].categoryid,
+                        data[5].categoryid,
+                        data[4].categoryid,
+                        data[3].categoryid,
+                        data[2].categoryid,
+                        data[1].categoryid,
+                        data[0].categoryid
+                    ],
+                    axisLabel: {
+                        show: true,
+                        interval: 0,
+                        textStyle: {
+                            color: '#fff3f8'
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: '点击次数',
+                        type: 'bar',
+                        data: [
+                            data[9].clickCount,
+                            data[8].clickCount,
+                            data[7].clickCount,
+                            data[6].clickCount,
+                            data[5].clickCount,
+                            data[4].clickCount,
+                            data[3].clickCount,
+                            data[2].clickCount,
+                            data[1].clickCount,
+                            data[0].clickCount
+                        ],
+                        textStyle: {
+                            color: '#fff3f8'
+                        }
+                    },
+                    {
+                        name: '下单次数',
+                        type: 'bar',
+                        data: [
+                            data[9].orderCount,
+                            data[8].orderCount,
+                            data[7].orderCount,
+                            data[6].orderCount,
+                            data[5].orderCount,
+                            data[4].orderCount,
+                            data[3].orderCount,
+                            data[2].orderCount,
+                            data[1].orderCount,
+                            data[0].orderCount
+                        ],
+                        textStyle: {
+                            color: '#fff3f8'
+                        }
+                    },
+                    {
+                        name: '支付次数',
+                        type: 'bar',
+                        data: [
+                            data[9].payCount,
+                            data[8].payCount,
+                            data[7].payCount,
+                            data[6].payCount,
+                            data[5].payCount,
+                            data[4].payCount,
+                            data[3].payCount,
+                            data[2].payCount,
+                            data[1].payCount,
+                            data[0].payCount
+                        ],
+                        textStyle: {
+                            color: '#fff3f8'
+                        }
+                    }
+                ]
+            };
+            myChart2.setOption(option);
+        }
+    });
+</script>
+
+</body>
+</html>
+
